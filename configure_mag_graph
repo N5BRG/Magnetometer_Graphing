@@ -1,0 +1,26 @@
+[profile]
+token_value = [your token]
+node = [ your node ]
+grid = [ your grid ]
+prefix = [ your call ]
+thestationid = [ your station id]
+central_host = pswsnetwork.caps.ua.edu
+
+[mag_settings]
+obs =
+instrumentname = Mag3
+throttle = 100K
+orig_path =
+temp_path =
+upload_path =
+targetdir = magData
+sleeptime = 1800
+
+[directories]
+logfiles = ./logs/
+
+[location]
+comment = #Change to your Lat and Lon and update elevation in meters
+lattitude = 33.4679
+longitude = -97.081
+elevation = 231
