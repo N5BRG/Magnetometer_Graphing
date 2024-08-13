@@ -17,6 +17,7 @@ import os
 import configparser
 from math import cos,sin,acos,asin,tan
 from math import degrees,radians
+#from io import StringIO
 
 # To Determin Sun Zenith Time and more ....
 from sunrisesunsetcalculator import sunrise_sunset
@@ -25,73 +26,126 @@ from sunrisesunsetcalculator import time_of_next_sunrise_sunset
 from sunrisesunsetcalculator import rounded_hours_until_next_sunrise_sunset
 
 
-def setup(ax1, ax3, title, roll_count, List_length, x_limit, t, x, y, z, rt, lt, tr_show, tl_show):
-    """Set up common parameters for the Axes in the example."""
-    # only show the bottom spine
-    #ax1.yaxis.set_major_locator(ticker.NullLocator())
-    ax1.spines[['left', 'right', 'top']].set_visible(True)
+def setup(ax1, ax3, title, roll_count, List_length, x_limit, t, x, y, z, rt, lt, tr_show, tl_show, raw, H, E, Z, vmag):
+	"""Set up common parameters for the Axes in the example."""
+	# only show the bottom spine
+	#ax1.yaxis.set_major_locator(ticker.NullLocator())
+	ax1.spines[['left', 'right', 'top']].set_visible(True)
 
-    t_len = len(t)
+	t_len = len(t)
+	t_adj = np.empty([t_len], dtype = float)
+	for n in range(t_len-1):
+		t_adj[n] = (t[n]/86400) * (86400/roll_count) # 86400 is seconds in one day
 
-    if roll_count > 1:
-        # Will normalize values to 24 hours but set plot to fit a full 24 hours of roll_length data.
-        # May have missed a block of time during the day.
-        t_adj = np.empty([t_len], dtype = float)
-        for n in range(t_len-1):
-            t_adj[n] = (t[n]/86400) * (86400/roll_count) # 86400 is seconds in one day
-            # FIX t_adj[n] = (t[n]/float(8600/List_length)) * 24.0
-        # Plot the XYZ values
-        ax1.plot(t_adj,x,'.', label="X axis", color="red")
-        ax1.plot(t_adj,y,'.', label="Y axis", color="blue")
-        ax1.plot(t_adj,z,'.', label="Z axis", color="black")
-    else: # Plot all values available, every second
-        ax1.plot(t,x,'.', label="X axis", color="red")
-        ax1.plot(t,y,'.', label="Y axis", color="blue")
-        ax1.plot(t,z,'.', label="Z axis", color="black")
-    # define tick positions
-    ax1.xaxis.set_major_locator(ticker.MultipleLocator((84600/roll_count)/24))
-    ax1.xaxis.set_minor_locator(ticker.MultipleLocator(86400/roll_count))
-    xlabel = "{} second increment(s)".format(roll_count)
-    ax1.set_xlabel(xlabel)
+	if int(raw) == 1:	# When plotting raw values plotabsolute value of field strength
+		x = np.abs(x)
+		y = np.abs(y)
+		z = np.abs(z)
+	if int(vmag) == 1:
+		vector_mag = np.sqrt(np.power(x,2) + np.power(y,2) + np.power(z,2))
+		ax1.plot(t_adj,vector_mag,'.', label="Vector Magnitude", color="orange")
 
-    ax1.xaxis.set_ticks_position('bottom')
-    ax1.tick_params(which='major', width=1.00, length=5)
-    ax1.tick_params(which='minor', width=0.75, length=2.5, labelsize=10)
-    ax1.set_xlim(xmin=0, xmax=x_limit)
-    ax1.set_ylabel('Differential Magnetic Flux (nT)')
-    ax1.legend(frameon=False, loc='lower center', ncol=3, fontsize=20)
-    ax1.set_yticks([0.2, 0.6, 0.8], minor=True)
-    ax1.set_yticks([0.3, 0.55, 0.7], minor=True)
-    ax1.yaxis.grid(True, which='major')
-    ax1.yaxis.grid(True, which='minor')
+	if (roll_count > 1) and (int(vmag) == 0):
+		# Will normalize values to 24 hours but set plot to fit a full 24 hours of roll_length data.
+		# May have missed a block of time during the day.
+		# FIX t_adj[n] = (t[n]/float(8600/List_length)) * 24.0
+		# Plot the XYZ values
+		if int(Z) == 1:
+			ax1.plot(t_adj,x,'.', label="Z (x) axis", color="red")
+		if int(E) == 1:
+			ax1.plot(t_adj,y,'.', label="E (y) axis", color="blue")
+		if int(H) == 1:
+			ax1.plot(t_adj,z,'.', label="H (z) axis", color="black")
+	else: # Plot all values available, every second
+		if int(Z) == 1:
+			ax1.plot(t,x,'.', label="Z (x) axis", color="red")
+		if int(H) == 1:
+			ax1.plot(t,y,'.', label="E (y) axis", color="blue")
+		if int(Z) == 1:
+			ax1.plot(t,z,'.', label="H (z) axis", color="black")
+	# define tick positions
+	ax1.xaxis.set_major_locator(ticker.MultipleLocator((84600/roll_count)/24))
+	ax1.xaxis.set_minor_locator(ticker.MultipleLocator(86400/roll_count))
+	xlabel = "{} second increment(s)".format(roll_count)
+	ax1.set_xlabel(xlabel)
 
-    if int(tl_show) == 1 or int(tr_show) == 1:
-         if int(tr_show) == 1:
-            ax3.plot(t_adj,rt,'.', label="Sensor Temp", color="green")
-         if int(tl_show) == 1:
-            ax3.plot(t_adj,lt,'.', label="RPi Temp", color="brown")
-         ax3.set_xlim(xmin=0, xmax=x_limit)
-         ax3.set_ylabel('Temperature (C)')
-         ax3.legend(frameon=False, loc='lower center', ncol=3, fontsize=20)
-         #ax3.set_yticks([0.2, 0.6, 0.8], minor=True)
-         #ax3.set_yticks([0.3, 0.55, 0.7], minor=True)
-         ax3.yaxis.grid(True, which='major')
-         #ax3.yaxis.grid(True, which='minor')
-         ax3.set_ylim(0,50)
-         #ax3.set_yticks(new_tick_locations)
-         #ax3.set_yticklabels(tick_function(new_tick_locations))
-         ax3.legend(loc=0)
-    else:
-         ax3.yaxis.set_tick_params(labelright=False)
-         ax3.set_yticks([])
+	ax1.xaxis.set_ticks_position('bottom')
+	ax1.tick_params(which='major', width=1.00, length=5)
+	ax1.tick_params(which='minor', width=0.75, length=2.5, labelsize=10)
+	ax1.set_xlim(xmin=0, xmax=x_limit)
+	if int(raw) == 1:
+		ax1.set_ylabel('Magnetic Flux (uT)')
+	else:
+		ax1.set_ylabel('Differential Magnetic Flux (nT)')
+	ax1.legend(frameon=False, loc='lower center', ncol=3, fontsize=20)
+	ax1.set_yticks([0.2, 0.6, 0.8], minor=True)
+	ax1.set_yticks([0.3, 0.55, 0.7], minor=True)
+	ax1.yaxis.grid(True, which='major')
+	ax1.yaxis.grid(True, which='minor')
 
-    # Determin max and min values to setup Y axis extreams in plot so plot is filled.
-    max_value = np.max([np.max(x),np.max(y),np.max(z),-(np.min(x)),-(np.min(y)),-(np.min(z))])
-    ax1.set_ylim(-(max_value), (max_value))
-    ax1.text(0.250, 1.1, title, transform=ax1.transAxes,
-            fontsize=14, fontname='Monospace', color='tab:blue')
+	if int(tl_show) == 1 or int(tr_show) == 1:
+		if int(tr_show) == 1:
+			ax3.plot(t_adj,rt,'.', label="Sensor Temp", color="green")
+		if int(tl_show) == 1:
+			ax3.plot(t_adj,lt,'.', label="RPi Temp", color="brown")
+		ax3.set_xlim(xmin=0, xmax=x_limit)
+		ax3.set_ylabel('Temperature (C)')
+		ax3.legend(frameon=False, loc='lower center', ncol=3, fontsize=20)
+		#ax3.set_yticks([0.2, 0.6, 0.8], minor=True)
+		#ax3.set_yticks([0.3, 0.55, 0.7], minor=True)
+		ax3.yaxis.grid(True, which='major')
+		#ax3.yaxis.grid(True, which='minor')
+		ax3.set_ylim(0,50)
+		#ax3.set_yticks(new_tick_locations)
+		#ax3.set_yticklabels(tick_function(new_tick_locations))
+		ax3.legend(loc=0)
+	else:
+		ax3.yaxis.set_tick_params(labelright=False)
+		ax3.set_yticks([])
 
-def graph_magnetic_day(lat,long, logfiles, filename, plot_type, roll_count_str, tr_show, tl_show):
+	# Determin max and min values to setup Y axis extreams in plot so plot is filled.
+	max_value = 0
+	min_value = 200
+	if int(vmag) == 1:
+		max_value = np.max(abs(vector_mag))
+		min_value = np.min(abs(vector_mag))
+		ax1.set_ylim(min_value, max_value )
+	if int(raw) == 1:
+		max_x = np.max(abs(x))
+		max_y = np.max(abs(y))
+		max_z = np.max(abs(z))
+		min_x = np.min(abs(x))
+		min_y = np.min(abs(y))
+		min_z = np.min(abs(z))
+		if int(H) == 1:
+			max_value = max_z 
+			min_value = min_z 
+		if int(E) == 1:
+			if max_value < max_y:
+				max_value = max_y
+			if min_value > min_y:
+				min_value = min_y
+		if int(Z) == 1:
+			if max_value < max_x:
+				max_value = max_x
+			if min_value > min_x:
+				min_value = min_x
+			if max_value < max_x:
+				max_value = max_x
+			if min_value > min_x:
+				min_value = min_x
+		ax1.set_ylim(min_value, max_value )
+	else:
+		max_value = np.max([np.max(x),np.max(y),np.max(z),-(np.min(x)),-(np.min(y)),-(np.min(z))])
+		ax1.set_ylim(-(max_value), (max_value))
+	if int(vmag) == 1:
+		max_value = np.max(abs(vector_mag))
+		min_value = np.min(abs(vector_mag))
+		ax1.set_ylim(min_value, max_value )
+	ax1.text(0.250, 1.1, title, transform=ax1.transAxes,
+	 fontsize=14, fontname='Monospace', color='tab:blue')
+
+def graph_magnetic_day(lat,long, logfiles, filename, plot_type, roll_count_str, tr_show, tl_show, raw, H, E, Z, vmag):
 	latitude = float(lat)
 	longitude = float(long)
 	filename = filename.replace("'","")  #Remove quotes from filename added by combo.get()
@@ -108,6 +162,7 @@ def graph_magnetic_day(lat,long, logfiles, filename, plot_type, roll_count_str, 
 	temp = np.empty([60,6], dtype = float)
 
 	# Read in test file. Need to expand this to support slecting the file of interest...
+	#df = pd.read_json("/home/bstricklin/n5brg-20240606-runmag.log",lines=True)
 	logfiles_len = len(logfiles)
 	path = logfiles
 	df = pd.read_json((path + filename),lines=True)
@@ -196,20 +251,30 @@ def graph_magnetic_day(lat,long, logfiles, filename, plot_type, roll_count_str, 
 				vector_day[i,4]= np.sqrt(np.mean(temp[:,4]**2))
 				vector_day[i,5]= np.sqrt(np.mean(temp[:,5]**2))
 
+			if i == 150:
+				print(vector_day[i,0],"average Z or  x\n")
+				print(vector_day[i,1],"average E or  y\n")
+				print(vector_day[i,2],"average H or  z\n")
 
 			j = 0  # Starts inter loop again
 			i += 1
 	List_length = i -1 # Adjust List_length to match number of elements in data set.
-	# Determine mean value and time value needed to subtract from readings to move the results to zero reference
-	vector_subtract[0,0] = np.mean(vector_day[:,0])
-	vector_subtract[0,1] = np.mean(vector_day[:,1])
-	vector_subtract[0,2] = np.mean(vector_day[:,2])
-	vector_subtract[0,3] = 0
-	vector_subtract[0,4] = 0
-	vector_subtract[0,5] = 0
-	# Subtract the mean value from all the df values to make the results differential about zero
-	# This adjust all values to be about zero
-	vector_day = np.subtract(vector_day,vector_subtract)
+	# If raw equals 1 we will not do differential otherwise we will
+	if int(raw) == 0:
+		# Determine mean value and time value needed to subtract from readings to move the results to zero reference
+		vector_subtract[0,0] = np.mean(vector_day[:,0])
+		vector_subtract[0,1] = np.mean(vector_day[:,1])
+		vector_subtract[0,2] = np.mean(vector_day[:,2])
+		vector_subtract[0,3] = 0
+		vector_subtract[0,4] = 0
+		vector_subtract[0,5] = 0
+		# Subtract the mean value from all the df values to make the results differential about zero
+		# This adjust all values to be about zero.
+		vector_day = np.subtract(vector_day,vector_subtract) 
+		vector_day[:,0] = vector_day[:,0] * 1000 #convert from uT to nT
+		vector_day[:,1] = vector_day[:,1] * 1000 #convert from uT to nT
+		vector_day[:,2] = vector_day[:,2] * 1000 #convert from uT to nT
+
 	#now = datetime.datetime.now(timezone.utc)
 	z_time = sunrise_sunset(latitude, longitude, datetime.datetime.now(), 0.5,-2).get("solarNoon").get("solarNoon_time")
 	r_time = sunrise_sunset(latitude, longitude, datetime.datetime.now(), 0.5,-2).get("sunrise").get("sunrise_time")
@@ -259,7 +324,7 @@ def graph_magnetic_day(lat,long, logfiles, filename, plot_type, roll_count_str, 
 	if(end > List_length):
 		end  = List_length
 	# This function call  sets up plot and builds the main plot image
-	setup(ax1, ax3, title, roll_count, List_length, x_limit, vector_day[began:end,3],vector_day[began:end,0],vector_day[began:end,1],vector_day[began:end,2],vector_day[began:end,4],vector_day[began:end,5], tr_show, tl_show)
+	setup(ax1, ax3, title, roll_count, List_length, x_limit, vector_day[began:end,3],vector_day[began:end,0],vector_day[began:end,1],vector_day[began:end,2],vector_day[began:end,4],vector_day[began:end,5], tr_show, tl_show, raw, H, E, Z, vmag)
 	i=0
 
 	# Now for the top x_axis ticks and lables hours and seconds of the day
